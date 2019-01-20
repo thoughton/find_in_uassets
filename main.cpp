@@ -3,6 +3,7 @@
 #include <experimental/filesystem>
 #include <fstream>
 #include <cstring>
+#include <iostream>
 
 namespace fs = std::experimental::filesystem;
 
@@ -16,6 +17,7 @@ int main()
 	
 	if (!fs::exists(SearchPath) || !fs::is_directory(SearchPath))
 	{
+		printf("Can't find search path '%s', aborting.\n", SearchPath);
 		return 0;
 	}
 	
@@ -24,22 +26,25 @@ int main()
 	
 	const int SearchTermMinSize = 4;
 	
-	//std::string SearchTerm = "Goodbye";
-	//std::string SearchTerm = "world";
 	std::string SearchTerm = "FirstPersonTemplateWeaponFire02";
 	
-	const int TL = (int) SearchTerm.length();
-	if (TL < SearchTermMinSize)
+	printf("What are ya searchin'? ");
+	std::cin >> SearchTerm;
+	
+	const int SearchTermLen = (int) SearchTerm.length();
+	if (SearchTermLen < SearchTermMinSize)
 	{
+		printf("Search term must be at least '%d' chars long, aborting.\n", SearchTermMinSize);
 		return 0;
 	}
 	
-	const char& T0 = SearchTerm[0];
+	const char FirstChar = SearchTerm[0];
 
-	const int ReadBufSz = TL;
+	const int ReadBufSz = SearchTermLen;
 	char* ReadBuf = new char[ReadBufSz];
 	if (!ReadBuf)
 	{
+		printf("Failed to allocate small buffer for reading files, aborting.\n");
 		return 0;
 	}
 	
@@ -58,7 +63,7 @@ int main()
 			if ((Size >= SearchTermMinSize) && (Size <= SearchMaxFileSize) &&
 					Path.has_extension() && !STRNICMP(Path.extension().string().c_str(), SearchExt, SearchExtLen))
 			{
-				printf("Entry: %s: %lu\n", Pathname, Size);
+				//printf("Entry: %s: %lu\n", Pathname, Size);
 				
 				bool bMatches = false;
 				
@@ -66,15 +71,7 @@ int main()
 				
 				while (File.good())
 				{
-					auto gbefore = File.tellg();
-					
 					File.read(ReadBuf, ReadBufSz);
-					
-					auto e = File.eof();
-					auto gafter = File.tellg();
-					bool nl = (ReadBuf[0] == '\n');
-					bool c0 = (ReadBuf[0] == '\0');
-					auto pk = (File.peek() == '\n');
 					
 					// TODO Need to support ignoring case
 					bMatches = (SearchTerm.compare(ReadBuf) == 0);
@@ -83,47 +80,27 @@ int main()
 						break;
 					}
 					
-					//int NumBytesRead = (ReadBufSz - 1);
 					int FoundSubIdx = -1;
-					//if (ReadBuf[0] != '\n')
+					for (int i = 1; i < ReadBufSz; ++i)
 					{
-						for (int i = 1; i < ReadBufSz; ++i)
+						// TODO Need to support case insensitive here
+						if (ReadBuf[i] == FirstChar)
 						{
-							/*
-							if (ReadBuf[i] == '\n')
-							{
-								NumBytesRead = i;
-								break;
-							}
-							if ((ReadBuf[i] == T0) && (FoundSubIdx == -1))
-							{
-								FoundSubIdx = i;
-							}
-							*/
-							if (ReadBuf[i] == T0)
-							{
-								FoundSubIdx = i;
-								break;
-							}
+							FoundSubIdx = i;
+							break;
 						}
 					}
-					/*
-					else
-					{
-						NumBytesRead = 0;
-					}
-					*/
 					
 					if (FoundSubIdx >= 0)
 					{
-						const int RewindDelta = (FoundSubIdx - TL);
+						const int RewindDelta = (FoundSubIdx - SearchTermLen);
 						File.seekg(RewindDelta, std::fstream::cur);
 					}
 				}
 				
 				if (bMatches)
 				{
-					printf("  ^^^ Matches!\n");
+					printf("Match => %s\n", Pathname);
 				}
 			}
 		}
