@@ -60,14 +60,12 @@ int main()
 		{
 			const fs::path& Path = Entry.path();
 			
-			const char* Pathname = Path.c_str();
-			
 			const uintmax_t Size = fs::file_size(Path);
 			
 			if ((Size >= SearchTermMinSize) && (Size <= SearchMaxFileSize) &&
 					Path.has_extension() && !STRNICMP(Path.extension().string().c_str(), SearchExt, SearchExtLen))
 			{
-				//printf("Entry: %s: %lu\n", Pathname, Size);
+				//printf("Entry: %s: %lu\n", Path.c_str(), Size);
 				
 				bool bMatches = false;
 				
@@ -79,8 +77,12 @@ int main()
 					
 					// TODO Need to support ignoring case
 					bMatches = (SearchTerm.compare(ReadBuf) == 0);
-					if (bMatches || !File.good())
+					if (!File.good() || bMatches)
 					{
+						if (bMatches)
+						{
+							printf("Match => %s\n", Path.c_str());
+						}
 						break;
 					}
 					
@@ -100,11 +102,6 @@ int main()
 						const int RewindDelta = (FoundSubIdx - SearchTermLen);
 						File.seekg(RewindDelta, std::fstream::cur);
 					}
-				}
-				
-				if (bMatches)
-				{
-					printf("Match => %s\n", Pathname);
 				}
 			}
 		}
