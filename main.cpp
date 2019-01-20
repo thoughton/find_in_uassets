@@ -7,7 +7,11 @@
 
 namespace fs = std::experimental::filesystem;
 
+#if defined(PLAT_UNIX)
 #define STRNICMP strncasecmp
+#elif defined(PLAY_WIN)
+#define STRNICMP _strnicmp
+#endif
 
 int main()
 {
