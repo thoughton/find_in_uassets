@@ -1,20 +1,25 @@
-#include <stdio.h>
-#include <strings.h>
 #include <experimental/filesystem>
 #include <fstream>
 #include <cstring>
 #include <iostream>
+#include <chrono>
 
 namespace fs = std::experimental::filesystem;
 
 #if defined(PLAT_UNIX)
 #define STRNICMP strncasecmp
-#elif defined(PLAT_WIN)
+#define WSTR "%s"
+#else
 #define STRNICMP _strnicmp
+#define WSTR "%ls"
 #endif
+
+// FIXME Why doesn't it find anything in Windows Debug?!
 
 int main()
 {
+	const auto TimeStart = std::chrono::high_resolution_clock::now();
+	
 	const char* SearchPath = "Content";
 	const char* SearchExt = ".UASSET";
 	const uintmax_t SearchMaxFileSize = (10 * 1024 * 1024);
@@ -31,9 +36,10 @@ int main()
 	const int SearchTermMinSize = 4;
 	
 	std::string SearchTerm = "FirstPersonTemplateWeaponFire02";
-	
+#if 0
 	printf("What are ya searchin'? ");
 	std::cin >> SearchTerm;
+#endif
 	
 	const int SearchTermLen = (int) SearchTerm.length();
 	if (SearchTermLen < SearchTermMinSize)
@@ -65,24 +71,25 @@ int main()
 			if ((Size >= SearchTermMinSize) && (Size <= SearchMaxFileSize) &&
 					Path.has_extension() && !STRNICMP(Path.extension().string().c_str(), SearchExt, SearchExtLen))
 			{
-				//printf("Entry: %s: %lu\n", Path.c_str(), Size);
-				
-				bool bMatches = false;
+				//printf("Entry: %ls: %lu\n", Path.c_str(), Size);
 				
 				std::fstream File (Path, (std::fstream::in|std::fstream::binary));
-				
+
 				while (File.good())
 				{
 					File.read(ReadBuf, ReadBufSz);
 					
-					// TODO Need to support ignoring case
-					bMatches = (SearchTerm.compare(ReadBuf) == 0);
-					if (!File.good() || bMatches)
+					if (!File.good())
 					{
-						if (bMatches)
-						{
-							printf("Match => %s\n", Path.c_str());
-						}
+						break;
+					}
+					
+					// TODO Need to support ignoring case
+					const bool bMatches = (SearchTerm.compare(ReadBuf) == 0);
+					
+					if (bMatches)
+					{
+						printf("Match => " WSTR "\n", Path.c_str());
 						break;
 					}
 					
@@ -103,11 +110,31 @@ int main()
 						File.seekg(RewindDelta, std::fstream::cur);
 					}
 				}
+
+#if 1
+				// FIXME Sometimes Windows fails to find anything, even in Release, so logging errors here to help track it down
+				if (!File.good())
+				{
+					if (File.bad())
+					{
+						printf("  ERROR: bad: " WSTR "\n", Path.c_str());
+						break;
+					}
+					else if (File.fail() && !File.eof())
+					{
+						printf("  ERROR: fail: " WSTR "\n", Path.c_str());
+						break;
+					}
+				}
+#endif
 			}
 		}
 	}
 	
 	delete[] ReadBuf;
+	
+	const std::chrono::duration<double> TimeTaken = (std::chrono::high_resolution_clock::now() - TimeStart);
+	printf("Time taken: %g seconds\n", TimeTaken.count());
 	
 	return 0;
 }
