@@ -3,6 +3,9 @@
 #include <cstring>
 #include <iostream>
 #include <chrono>
+#if !defined(PLAT_UNIX)
+#include <conio.h>
+#endif
 
 namespace fs = std::experimental::filesystem;
 
@@ -18,8 +21,6 @@ namespace fs = std::experimental::filesystem;
 
 int main()
 {
-	const auto TimeStart = std::chrono::high_resolution_clock::now();
-	
 	const char* SearchPath = "Content";
 	const char* SearchExt = ".UASSET";
 	const uintmax_t SearchMaxFileSize = (10 * 1024 * 1024);
@@ -36,10 +37,13 @@ int main()
 	const int SearchTermMinSize = 4;
 	
 	std::string SearchTerm = "FirstPersonTemplateWeaponFire02";
-#if 0
-	printf("What are ya searchin'? ");
+#if 1
+	printf("\n> What are ya searchin'? ");
 	std::cin >> SearchTerm;
+	printf("\n");
 #endif
+	
+	const auto TimeStart = std::chrono::high_resolution_clock::now();
 	
 	const int SearchTermLen = (int) SearchTerm.length();
 	if (SearchTermLen < SearchTermMinSize)
@@ -134,7 +138,13 @@ int main()
 	delete[] ReadBuf;
 	
 	const std::chrono::duration<double> TimeTaken = (std::chrono::high_resolution_clock::now() - TimeStart);
-	printf("Time taken: %g seconds\n", TimeTaken.count());
 	
+	printf("\nTime taken: %g seconds", TimeTaken.count());
+#if !defined(PLAT_UNIX)
+	printf(". Press any key to exit... ");
+	_getch();
+#endif
+	printf("\n\n");
+
 	return 0;
 }
